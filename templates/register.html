@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChatBD — রেজিস্টার</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Hind Siliguri', sans-serif;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card {
+    background: rgba(255,255,255,0.07);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 20px;
+    padding: 40px 36px;
+    width: 360px;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+  }
+  .logo { text-align: center; margin-bottom: 28px; }
+  .logo h1 { color: #fff; font-size: 28px; font-weight: 700; }
+  .logo span { color: #7c6fcd; }
+  .logo p { color: rgba(255,255,255,0.5); font-size: 14px; margin-top: 4px; }
+  label { display: block; color: rgba(255,255,255,0.7); font-size: 14px; margin-bottom: 6px; }
+  input {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 15px;
+    font-family: 'Hind Siliguri', sans-serif;
+    margin-bottom: 16px;
+    outline: none;
+    transition: border 0.2s;
+  }
+  input:focus { border-color: #7c6fcd; }
+  input::placeholder { color: rgba(255,255,255,0.3); }
+  .btn {
+    width: 100%;
+    padding: 13px;
+    background: linear-gradient(135deg, #7c6fcd, #5a4fcf);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: 'Hind Siliguri', sans-serif;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .error {
+    background: rgba(255,80,80,0.15);
+    border: 1px solid rgba(255,80,80,0.4);
+    color: #ff8080;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+  .link { text-align: center; margin-top: 20px; color: rgba(255,255,255,0.5); font-size: 14px; }
+  .link a { color: #7c6fcd; text-decoration: none; font-weight: 600; }
+  .link a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <h1>💬 Chat<span>BD</span></h1>
+    <p>নতুন অ্যাকাউন্ট তৈরি করুন</p>
+  </div>
+  {% if error %}
+  <div class="error">⚠️ {{ error }}</div>
+  {% endif %}
+  <form method="POST">
+    <label>ইউজারনেম</label>
+    <input type="text" name="username" placeholder="আপনার নাম লিখুন" required>
+    <label>পাসওয়ার্ড</label>
+    <input type="password" name="password" placeholder="পাসওয়ার্ড লিখুন" required>
+    <button class="btn" type="submit">রেজিস্টার করুন</button>
+  </form>
+  <div class="link">আগেই আছেন? <a href="/login">লগইন করুন</a></div>
+</div>
+</body>
+</html>

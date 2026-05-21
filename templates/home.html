@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChatBD — হোম</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Hind Siliguri', sans-serif;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .container {
+    background: rgba(255,255,255,0.07);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 20px;
+    width: 380px;
+    overflow: hidden;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+  }
+  .header {
+    padding: 20px 24px;
+    background: rgba(124,111,205,0.3);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header h2 { color: #fff; font-size: 20px; font-weight: 700; }
+  .header .me { color: rgba(255,255,255,0.6); font-size: 14px; }
+  .logout {
+    color: #ff8080;
+    text-decoration: none;
+    font-size: 13px;
+    background: rgba(255,80,80,0.15);
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,80,80,0.3);
+    transition: background 0.2s;
+  }
+  .logout:hover { background: rgba(255,80,80,0.3); }
+  .section-title {
+    padding: 16px 24px 8px;
+    color: rgba(255,255,255,0.4);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .user-list { padding: 0 12px 16px; }
+  .user-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: background 0.2s;
+    cursor: pointer;
+  }
+  .user-item:hover { background: rgba(255,255,255,0.1); }
+  .avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7c6fcd, #5a4fcf);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #fff;
+    font-weight: 700;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .dot {
+    position: absolute;
+    bottom: 1px;
+    right: 1px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #1a1730;
+  }
+  .dot.online { background: #4ade80; }
+  .dot.offline { background: #6b7280; }
+  .user-info .name { color: #fff; font-size: 15px; font-weight: 600; }
+  .user-info .status { color: rgba(255,255,255,0.45); font-size: 13px; }
+  .empty {
+    text-align: center;
+    padding: 30px;
+    color: rgba(255,255,255,0.35);
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div>
+      <h2>💬 ChatBD</h2>
+      <div class="me">👤 {{ username }}</div>
+    </div>
+    <a href="/logout" class="logout">লগআউট</a>
+  </div>
+
+  <div class="section-title">ইউজার লিস্ট</div>
+  <div class="user-list">
+    {% if users %}
+      {% for user in users %}
+      <a href="/chat/{{ user }}" class="user-item">
+        <div class="avatar">
+          {{ user[0] }}
+          <span class="dot {% if user in online %}online{% else %}offline{% endif %}"></span>
+        </div>
+        <div class="user-info">
+          <div class="name">{{ user }}</div>
+          <div class="status">{% if user in online %}🟢 অনলাইন{% else %}⚫ অফলাইন{% endif %}</div>
+        </div>
+      </a>
+      {% endfor %}
+    {% else %}
+      <div class="empty">কোনো ইউজার নেই।<br>অন্য ট্যাবে রেজিস্টার করুন।</div>
+    {% endif %}
+  </div>
+</div>
+</body>
+</html>
