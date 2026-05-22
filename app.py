@@ -6,7 +6,7 @@ import os
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'my_secret_key')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://chatbd_db_user:wlLj0XH8m6nTsTSWS9UukLDZKRMQPW2A@dpg-d87uclm7r5hc73f3b2c0-a.oregon-postgres.render.com/chatbd_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
