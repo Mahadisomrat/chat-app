@@ -1,6 +1,4 @@
-
-from flask import Flask, render_template, request, redirect, url_for, session
-from flask_socketio import SocketIO, emit, join_room
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
@@ -8,14 +6,10 @@ import os
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'chatbd2026verysecretkey')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://chatbd_db_user:wlLj0XH8m6nTsTSWS9UukLDZKRMQPW2A@dpg-d87uclm7r5hc73f3b2c0-a.oregon-postgres.render.com/chatbd_db'
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_pre_ping': True,
-    'pool_recycle': 300,
-}
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True, 'pool_recycle': 300}
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading', allow_upgrades=False)
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -31,8 +25,6 @@ class Message(db.Model):
 
 with app.app_context():
     db.create_all()
-
-online_users = set()
 
 def get_room_id(user1, user2):
     return '_'.join(sorted([user1, user2]))
@@ -54,8 +46,7 @@ def register():
         elif User.query.filter_by(username=username).first():
             error = 'এই নামে ইউজার আছে'
         else:
-            new_user = User(username=username, password=password)
-            db.session.add(new_user)
+            db.session.add(User(username=username, password=password))
             db.session.commit()
             session['username'] = username
             return redirect(url_for('home'))
@@ -85,9 +76,8 @@ def home():
     if 'username' not in session:
         return redirect(url_for('login'))
     me = session['username']
-    all_users = User.query.filter(User.username != me).all()
-    others = [u.username for u in all_users]
-    return render_template('home.html', username=me, users=others, online=list(online_users))
+    others = [u.username for u in User.query.filter(User.username != me).all()]
+    return render_template('home.html', username=me, users=others)
 
 @app.route('/chat/<other>')
 def chat(other):
@@ -100,30 +90,22 @@ def chat(other):
     history = Message.query.filter_by(room=room).all()
     return render_template('chat.html', me=me, other=other, history=history, room=room)
 
-@socketio.on('connect')
-def on_connect():
-    if 'username' in session:
-        online_users.add(session['username'])
-        emit('user_status', {'user': session['username'], 'status': 'online'}, broadcast=True)
-
-@socketio.on('disconnect')
-def on_disconnect():
-    if 'username' in session:
-        online_users.discard(session['username'])
-        emit('user_status', {'user': session['username'], 'status': 'offline'}, broadcast=True)
-
-@socketio.on('join')
-def on_join(data):
-    join_room(data['room'])
-
-@socketio.on('send_message')
-def handle_message(data):
-    room = data['room']
-    time_now = datetime.now().strftime('%I:%M %p')
-    msg = Message(room=room, sender=data['from'], text=data['text'], time=time_now)
+@app.route('/send', methods=['POST'])
+def send():
+    if 'username' not in session:
+        return jsonify({'error': 'unauthorized'}), 401
+    data = request.json
+    msg = Message(room=data['room'], sender=session['username'], text=data['text'], time=datetime.now().strftime('%I:%M %p'))
     db.session.add(msg)
     db.session.commit()
-    emit('receive_message', {'from': data['from'], 'text': data['text'], 'time': time_now}, room=room)
+    return jsonify({'ok': True})
+
+@app.route('/messages/<room>/<int:after>')
+def get_messages(room, after):
+    if 'username' not in session:
+        return jsonify([])
+    msgs = Message.query.filter_by(room=room).filter(Message.id > after).all()
+    return jsonify([{'id': m.id, 'sender': m.sender, 'text': m.text, 'time': m.time} for m in msgs])
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
