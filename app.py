@@ -1,201 +1,124 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from flask_socketio import SocketIO, emit, join_room
+from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+import os
 
 app = Flask(__name__)
-app.secret_key = 'my_secret_key'
+app.secret_key = os.environ.get('SECRET_KEY', 'my_secret_key')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-socketio = SocketIO(app, cors_allowed_origins="*")
+db = SQLAlchemy(app)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
-# Storage
-users = {}
-messages = {}
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
+
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    room = db.Column(db.String(200), nullable=False)
+    sender = db.Column(db.String(100), nullable=False)
+    text = db.Column(db.Text, nullable=False)
+    time = db.Column(db.String(20), nullable=False)
+
+with app.app_context():
+    db.create_all()
+
 online_users = set()
 
-# Room ID
 def get_room_id(user1, user2):
     return '_'.join(sorted([user1, user2]))
-
-# ================= ROUTES =================
 
 @app.route('/')
 def index():
     if 'username' not in session:
         return redirect(url_for('login'))
-
     return redirect(url_for('home'))
-
-# ---------- Register ----------
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-
     error = None
-
     if request.method == 'POST':
-
         username = request.form['username'].strip()
         password = request.form['password'].strip()
-
         if not username or not password:
             error = 'সব তথ্য পূরণ করুন'
-
-        elif username in users:
+        elif User.query.filter_by(username=username).first():
             error = 'এই নামে ইউজার আছে'
-
         else:
-            users[username] = password
+            new_user = User(username=username, password=password)
+            db.session.add(new_user)
+            db.session.commit()
             session['username'] = username
-
             return redirect(url_for('home'))
-
     return render_template('register.html', error=error)
-
-# ---------- Login ----------
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-
     error = None
-
     if request.method == 'POST':
-
         username = request.form['username'].strip()
         password = request.form['password'].strip()
-
-        if users.get(username) == password:
-
+        user = User.query.filter_by(username=username, password=password).first()
+        if user:
             session['username'] = username
-
             return redirect(url_for('home'))
-
         else:
             error = 'ভুল username বা password'
-
     return render_template('login.html', error=error)
-
-# ---------- Logout ----------
 
 @app.route('/logout')
 def logout():
-
     session.pop('username', None)
-
     return redirect(url_for('login'))
-
-# ---------- Home ----------
 
 @app.route('/home')
 def home():
-
     if 'username' not in session:
         return redirect(url_for('login'))
-
     me = session['username']
-
-    others = [u for u in users if u != me]
-
-    return render_template(
-        'home.html',
-        username=me,
-        users=others,
-        online=list(online_users)
-    )
-
-# ---------- Chat ----------
+    all_users = User.query.filter(User.username != me).all()
+    others = [u.username for u in all_users]
+    return render_template('home.html', username=me, users=others, online=list(online_users))
 
 @app.route('/chat/<other>')
 def chat(other):
-
     if 'username' not in session:
         return redirect(url_for('login'))
-
     me = session['username']
-
-    if other not in users:
+    if not User.query.filter_by(username=other).first():
         return redirect(url_for('home'))
-
     room = get_room_id(me, other)
-
-    history = messages.get(room, [])
-
-    return render_template(
-        'chat.html',
-        me=me,
-        other=other,
-        history=history,
-        room=room
-    )
-
-# ================= SOCKET EVENTS =================
+    history = Message.query.filter_by(room=room).all()
+    return render_template('chat.html', me=me, other=other, history=history, room=room)
 
 @socketio.on('connect')
 def on_connect():
-
     if 'username' in session:
-
         online_users.add(session['username'])
-
-        emit(
-            'user_status',
-            {
-                'user': session['username'],
-                'status': 'online'
-            },
-            broadcast=True
-        )
+        emit('user_status', {'user': session['username'], 'status': 'online'}, broadcast=True)
 
 @socketio.on('disconnect')
 def on_disconnect():
-
     if 'username' in session:
-
         online_users.discard(session['username'])
-
-        emit(
-            'user_status',
-            {
-                'user': session['username'],
-                'status': 'offline'
-            },
-            broadcast=True
-        )
+        emit('user_status', {'user': session['username'], 'status': 'offline'}, broadcast=True)
 
 @socketio.on('join')
 def on_join(data):
-
     join_room(data['room'])
-
-# ---------- Send Message ----------
 
 @socketio.on('send_message')
 def handle_message(data):
-
     room = data['room']
-
-    msg = {
-        'from': data['from'],
-        'text': data['text'],
-        'time': datetime.now().strftime('%I:%M %p')
-    }
-
-    if room not in messages:
-        messages[room] = []
-
-    messages[room].append(msg)
-
-    emit('receive_message', msg, room=room)
-
-# ================= MAIN =================
+    time_now = datetime.now().strftime('%I:%M %p')
+    msg = Message(room=room, sender=data['from'], text=data['text'], time=time_now)
+    db.session.add(msg)
+    db.session.commit()
+    emit('receive_message', {'from': data['from'], 'text': data['text'], 'time': time_now}, room=room)
 
 if __name__ == '__main__':
-
-    # Demo Users
-    users['mahadi'] = '1234'
-    users['friend'] = '1234'
-
-    socketio.run(
-        app,
-        debug=True,
-        allow_unsafe_werkzeug=True
-    )
+    socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
