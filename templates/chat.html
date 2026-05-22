@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="bn">
 <head>
@@ -132,7 +133,7 @@
 
   <div class="messages" id="messages">
     {% for msg in history %}
-    <div class="msg {% if msg.from == me %}mine{% else %}theirs{% endif %}">
+    <div class="msg {% if msg.sender == me %}mine{% else %}theirs{% endif %}">
       <div class="bubble">{{ msg.text }}</div>
       <div class="time">{{ msg.time }}</div>
     </div>
@@ -153,7 +154,6 @@
 
   socket.emit('join', { room: room });
 
-  // Enter key দিয়ে পাঠান
   document.getElementById('msg-input').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') sendMsg();
   });
@@ -189,7 +189,6 @@
     return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  // স্ক্রল নিচে
   window.onload = () => {
     const m = document.getElementById('messages');
     m.scrollTop = m.scrollHeight;
